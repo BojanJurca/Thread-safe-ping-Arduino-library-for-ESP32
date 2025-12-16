@@ -1,7 +1,7 @@
 /*
     ThreadSafePing.cpp
 
-    This file is part of the ThreadSafe ESP32 Ping class: https://github.com/BojanJurca/ThreadSafe-Esp32-ping-class
+    This file is part of the ThreadSafe ESP32 Ping class: https://github.com/BojanJurca/Thread-safe-ping-Arduino-library-for-ESP32
 
     The library is based on the work of Jaume Olivé: https://github.com/pbecchi/ESP32_ping
     and D. Varrel, whose implementation is included in the Arduino Library Manager: https://github.com/dvarrel
@@ -25,7 +25,7 @@
 #include <fcntl.h>
 
 
-// missing function
+// missing function in LwIP
 static const char *gai_strerror (int err) {
     switch (err) {
         case EAI_AGAIN:     return "temporary failure in name resolution";
@@ -40,13 +40,15 @@ static const char *gai_strerror (int err) {
     }
 }
 
-
+// internal data structure - one record per each available socket
 ThreadSafePing::__pingReply_t__ ThreadSafePing::__pingReplies__ [MEMP_NUM_NETCONN];
 
+// constructor with specified target (the one without target specified is in ThreadSafePing.h)
 ThreadSafePing::ThreadSafePing (const char *pingTarget) {
     __errText__ = __resolveTargetName__ (pingTarget);
 }
 
+// constructor with specified target (the one without target specified is in ThreadSafePing.h)
 ThreadSafePing::ThreadSafePing (const IPAddress& pingTarget) {
     snprintf (__pingTargetIp__, sizeof (__pingTargetIp__), "%u.%u.%u.%u", pingTarget [0], pingTarget [1], pingTarget [2], pingTarget [3]);
     __errText__ = __resolveTargetName__ (__pingTargetIp__);
@@ -54,7 +56,7 @@ ThreadSafePing::ThreadSafePing (const IPAddress& pingTarget) {
 
 // returns error text or NULL if OK
 const char *ThreadSafePing::__resolveTargetName__ (const char *pingTarget) {
-    if (!WiFi.isConnected () || WiFi.localIP () == IPAddress (0, 0, 0, 0))
+    if (!WiFi.isConnected () || WiFi.localIP () == IPAddress (0, 0, 0, 0)) // esp32 can crash without this check
         return "not connected";
 
     struct addrinfo hints, *res, *p;
@@ -99,6 +101,7 @@ const char *ThreadSafePing::__resolveTargetName__ (const char *pingTarget) {
     return NULL; // OK
 }
 
+// returns error text or NULL if OK
 const char *ThreadSafePing::ping (const char *pingTarget, int count, int interval, int size, int timeout) {
     __errText__ = __resolveTargetName__ (pingTarget);
     if (__errText__)
@@ -106,6 +109,7 @@ const char *ThreadSafePing::ping (const char *pingTarget, int count, int interva
     return ping (count, interval, size, timeout);
 }
 
+// returns error text or NULL if OK
 const char *ThreadSafePing::ping (const IPAddress& pingTarget, int count, int interval, int size, int timeout) {
     snprintf (__pingTargetIp__, sizeof (__pingTargetIp__), "%u.%u.%u.%u", pingTarget [0], pingTarget [1], pingTarget [2], pingTarget [3]);
     __errText__ = __resolveTargetName__ (__pingTargetIp__);
@@ -114,6 +118,7 @@ const char *ThreadSafePing::ping (const IPAddress& pingTarget, int count, int in
     return ping (count, interval, size, timeout);
 }
 
+// returns error text or NULL if OK
 const char *ThreadSafePing::ping (int count, int interval, int size, int timeout) {
     if (!WiFi.isConnected () || WiFi.localIP () == IPAddress (0, 0, 0, 0))
         return "not connected";
@@ -195,9 +200,10 @@ const char *ThreadSafePing::ping (int count, int interval, int size, int timeout
     }
 
     closesocket (sockfd);
-    return NULL;
+    return NULL; // OK
 }
 
+// returns error text or NULL if OK
 const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size) {
     int sent;
     int ping_size;
@@ -207,11 +213,11 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
         ping_size = sizeof (struct icmp6_echo_hdr) + size;
 
         // construct ping block
-        // - First there is struct icmp_echo_hdr (https://github.com/ARMmbed/lwip/blob/master/src/include/lwip/prot/icmG.h). We'll use these fields:
+        // - first there is struct icmp_echo_hdr (https://github.com/ARMmbed/lwip/blob/master/src/include/lwip/prot/icmG.h). We'll use these fields:
         //    - uint16_t id      - this is where we'll keep the socket number so that we would know from where ping packet has been send when we receive a reply 
         //    - uint16_t seqno   - each packet gets it sequence number so we can distinguish one packet from another when we receive a reply
         //    - uint16_t chksum  - needs to be calcualted
-        // - Then we'll add the payload:
+        // - then we'll add the payload:
         //    - unsigned long micros  - this is where we'll keep the time packet has been sent so we can calcluate round-trip time when we receive a reply
         //    - unimportant data, just to fill the payload to the desired length
 
@@ -219,7 +225,7 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
         if (!iecho)
             return "out of memory";
 
-        // initialize structure where the reply information will be stored when it arrives
+        // initialize the data structure where the reply information will be stored when it arrives
         __pingReplies__ [sockfd - LWIP_SOCKET_OFFSET] = { seqno, 0 };
 
         // prepare echo packet
@@ -232,7 +238,7 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
 
         // store micros at they are at send time
         unsigned long sendMicros = micros ();
-        *(unsigned long *) (((char *)iecho) + sizeof (struct icmp6_echo_hdr)) = sendMicros;
+        *(unsigned long *) (((char *) iecho) + sizeof (struct icmp6_echo_hdr)) = sendMicros;
 
         // fill the additional data buffer with some data
         for (int i = sizeof (sendMicros); i < data_len; i++)
@@ -242,7 +248,7 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
         iecho->chksum = inet_chksum (iecho, ping_size);
 
         // send the packet
-        sent = sendto (sockfd, iecho, ping_size, 0, (struct sockaddr *)&__target_addr_IPv6__, sizeof (__target_addr_IPv6__));
+        sent = sendto (sockfd, iecho, ping_size, 0, (struct sockaddr *) &__target_addr_IPv6__, sizeof (__target_addr_IPv6__));
 
         mem_free (iecho);
 
@@ -251,11 +257,11 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
         ping_size = sizeof (struct icmp_echo_hdr) + size;
 
         // construct ping block
-        // - First there is struct icmp_echo_hdr (https://github.com/ARMmbed/lwip/blob/master/src/include/lwip/prot/icmG.h). We'll use these fields:
+        // - first there is struct icmp_echo_hdr (https://github.com/ARMmbed/lwip/blob/master/src/include/lwip/prot/icmG.h). We'll use these fields:
         //    - uint16_t id      - this is where we'll keep the socket number so that we would know from where ping packet has been send when we receive a reply 
         //    - uint16_t seqno   - each packet gets it sequence number so we can distinguish one packet from another when we receive a reply
         //    - uint16_t chksum  - needs to be calcualted
-        // - Then we'll add the payload:
+        // - then we'll add the payload:
         //    - unsigned long micros  - this is where we'll keep the time packet has been sent so we can calcluate round-trip time when we receive a reply
         //    - unimportant data, just to fill the payload to the desired length
 
@@ -263,7 +269,7 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
         if (!iecho)
             return "out of memory";
 
-        // initialize structure where the reply information will be stored when it arrives
+        // initialize the structure where the reply information will be stored when it arrives
         __pingReplies__ [sockfd - LWIP_SOCKET_OFFSET] = { seqno, 0 };
 
         // prepare echo packet
@@ -286,19 +292,18 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
         iecho->chksum = inet_chksum (iecho, ping_size);
 
         // send the packet
-        sent = sendto (sockfd, iecho, ping_size, 0,
-                      (struct sockaddr *) &__target_addr_IPv4__,
-                      sizeof (__target_addr_IPv4__));
-
+        sent = sendto (sockfd, iecho, ping_size, 0, (struct sockaddr *) &__target_addr_IPv4__, sizeof (__target_addr_IPv4__));
+        
         mem_free (iecho);
     }
 
     if (sent != ping_size)
         return "couldn't sendto";
 
-    return NULL;
+    return NULL; // OK
 }
 
+// returns error text or NULL if OK
 const char *ThreadSafePing::__ping_recv__ (int sockfd, int *bytes, unsigned long timeoutMicros) {
     char buf [300];
 
@@ -313,21 +318,16 @@ const char *ThreadSafePing::__ping_recv__ (int sockfd, int *bytes, unsigned long
 
         // did some other process poick up our echo reply and already done the job for us? 
         if (__pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].elapsed_time)
-            return NULL;
+            return NULL; // OK
 
         // read echo packet without waiting
         if (__isIPv6__)
-            *bytes = recvfrom (sockfd, buf, sizeof (buf), 0,
-                               (struct sockaddr *) &from_addr_IPv6,
-                               (socklen_t *) &fromlen);
+            *bytes = recvfrom (sockfd, buf, sizeof (buf), 0, (struct sockaddr *) &from_addr_IPv6, (socklen_t *) &fromlen);
         else
-            *bytes = recvfrom (sockfd, buf, sizeof (buf), 0,
-                               (struct sockaddr *) &from_addr_IPv4,
-                               (socklen_t *) &fromlen);
+            *bytes = recvfrom (sockfd, buf, sizeof (buf), 0, (struct sockaddr *) &from_addr_IPv4, (socklen_t *) &fromlen);
 
         if (*bytes <= 0) {
-            if ((errno == EAGAIN || errno == ENAVAIL) &&
-                (micros () - startMicros < timeoutMicros)) {
+            if ((errno == EAGAIN || errno == ENAVAIL) && (micros () - startMicros < timeoutMicros)) {
                 delay (1);
                 continue;
             }
@@ -385,17 +385,18 @@ const char *ThreadSafePing::__ping_recv__ (int sockfd, int *bytes, unsigned long
 
             // did we pick up the echo packet with the latest sequence number?
             if (__pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].seqno == seqno) {
-                // write information about the reply in data structure
+                // write information about the reply in the data structure
                 __pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].elapsed_time = micros () - sentMicros;
                 return NULL; // OK
             } // else the sequence numbers do not match, ignore this echo packet, its time-out has probably already been reported
         } else {    // we picked up an echo packet that was sent from another socket
             // did we pick up the echo packet with the latest sequence number?
             if (__pingReplies__ [id - LWIP_SOCKET_OFFSET].seqno == seqno) {
-                // write information about the reply in data structure
+                // write information about the reply in the data structure
                 __pingReplies__ [id - LWIP_SOCKET_OFFSET].elapsed_time = micros () - sentMicros;
                 // do not return now, continue waiting for the right echo packet
             } // else the sequence numbers do not match, ignore this echo packet, its time-out has probably already been reported
         }
     }
 }
+
