@@ -41,21 +41,21 @@ static const char *gai_strerror (int err) {
 }
 
 // internal data structure - one record per each available socket
-ThreadSafePing::__pingReply_t__ ThreadSafePing::__pingReplies__ [MEMP_NUM_NETCONN];
+ThreadSafePing_t::__pingReply_t__ ThreadSafePing_t::__pingReplies__ [MEMP_NUM_NETCONN];
 
-// constructor with specified target (the one without target specified is in ThreadSafePing.h)
-ThreadSafePing::ThreadSafePing (const char *pingTarget) {
+// constructor with specified target (the one without target specified is in ThreadSafePing_t.h)
+ThreadSafePing_t::ThreadSafePing_t (const char *pingTarget) {
     __errText__ = __resolveTargetName__ (pingTarget);
 }
 
-// constructor with specified target (the one without target specified is in ThreadSafePing.h)
-ThreadSafePing::ThreadSafePing (const IPAddress& pingTarget) {
+// constructor with specified target (the one without target specified is in ThreadSafePing_t.h)
+ThreadSafePing_t::ThreadSafePing_t (const IPAddress& pingTarget) {
     snprintf (__pingTargetIp__, sizeof (__pingTargetIp__), "%u.%u.%u.%u", pingTarget [0], pingTarget [1], pingTarget [2], pingTarget [3]);
     __errText__ = __resolveTargetName__ (__pingTargetIp__);
 }
 
 // returns error text or NULL if OK
-const char *ThreadSafePing::__resolveTargetName__ (const char *pingTarget) {
+const char *ThreadSafePing_t::__resolveTargetName__ (const char *pingTarget) {
     if (!WiFi.isConnected () || WiFi.localIP () == IPAddress (0, 0, 0, 0)) // esp32 can crash without this check
         return "not connected";
 
@@ -102,7 +102,7 @@ const char *ThreadSafePing::__resolveTargetName__ (const char *pingTarget) {
 }
 
 // returns error text or NULL if OK
-const char *ThreadSafePing::ping (const char *pingTarget, int count, int interval, int size, int timeout) {
+const char *ThreadSafePing_t::ping (const char *pingTarget, int count, int interval, int size, int timeout) {
     __errText__ = __resolveTargetName__ (pingTarget);
     if (__errText__)
         return __errText__;
@@ -110,7 +110,7 @@ const char *ThreadSafePing::ping (const char *pingTarget, int count, int interva
 }
 
 // returns error text or NULL if OK
-const char *ThreadSafePing::ping (const IPAddress& pingTarget, int count, int interval, int size, int timeout) {
+const char *ThreadSafePing_t::ping (const IPAddress& pingTarget, int count, int interval, int size, int timeout) {
     snprintf (__pingTargetIp__, sizeof (__pingTargetIp__), "%u.%u.%u.%u", pingTarget [0], pingTarget [1], pingTarget [2], pingTarget [3]);
     __errText__ = __resolveTargetName__ (__pingTargetIp__);
     if (__errText__)
@@ -119,7 +119,7 @@ const char *ThreadSafePing::ping (const IPAddress& pingTarget, int count, int in
 }
 
 // returns error text or NULL if OK
-const char *ThreadSafePing::ping (int count, int interval, int size, int timeout) {
+const char *ThreadSafePing_t::ping (int count, int interval, int size, int timeout) {
     if (!WiFi.isConnected () || WiFi.localIP () == IPAddress (0, 0, 0, 0))
         return "not connected";
 
@@ -204,7 +204,7 @@ const char *ThreadSafePing::ping (int count, int interval, int size, int timeout
 }
 
 // returns error text or NULL if OK
-const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size) {
+const char *ThreadSafePing_t::__ping_send__ (int sockfd, uint16_t seqno, int size) {
     int sent;
     int ping_size;
 
@@ -304,7 +304,7 @@ const char *ThreadSafePing::__ping_send__ (int sockfd, uint16_t seqno, int size)
 }
 
 // returns error text or NULL if OK
-const char *ThreadSafePing::__ping_recv__ (int sockfd, int *bytes, unsigned long timeoutMicros) {
+const char *ThreadSafePing_t::__ping_recv__ (int sockfd, int *bytes, unsigned long timeoutMicros) {
     char buf [300];
 
     struct sockaddr_in  from_addr_IPv4;
@@ -399,4 +399,3 @@ const char *ThreadSafePing::__ping_recv__ (int sockfd, int *bytes, unsigned long
         }
     }
 }
-

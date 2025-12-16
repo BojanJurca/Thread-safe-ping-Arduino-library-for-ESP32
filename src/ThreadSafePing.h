@@ -53,7 +53,7 @@
     #endif
 
 
-    class ThreadSafePing {
+    class ThreadSafePing_t {
 
         private:
             bool __isIPv6__ = false;
@@ -91,9 +91,9 @@
             err_t __errno__ = ERR_OK;
 
         public:
-            ThreadSafePing () {}
-            ThreadSafePing (const char *pingTarget);
-            ThreadSafePing (const IPAddress& pingTarget);
+            ThreadSafePing_t () {}
+            ThreadSafePing_t (const char *pingTarget);
+            ThreadSafePing_t (const IPAddress& pingTarget);
 
             const char *ping (const char *pingTarget, int count = PING_DEFAULT_COUNT,
                               int interval = PING_DEFAULT_INTERVAL,
@@ -130,5 +130,17 @@
             virtual void onWait () {}
     };
 
-#endif
 
+    class [[deprecated("Use ThreadSafePing_t instead")]] ThreadSafePing : public ThreadSafePing_t {
+	public: 
+		[[deprecated("Use ThreadSafePing_t instead")]] 
+		ThreadSafePing () : ThreadSafePing_t () {}
+
+		[[deprecated("Use ThreadSafePing_t instead")]] 
+		ThreadSafePing (const char *pingTarget) : ThreadSafePing_t (pingTarget) {}
+
+		[[deprecated("Use ThreadSafePing_t instead")]] 
+		ThreadSafePing (const IPAddress& pingTarget) : ThreadSafePing_t (pingTarget) {}
+	};
+
+#endif
