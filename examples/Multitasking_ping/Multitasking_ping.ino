@@ -18,7 +18,7 @@ void setup () {
 
     // create a separate task to ping arduino.com
     xTaskCreate ([] (void *param)  {
-        ThreadSafePing ping;
+        ThreadSafePing_t ping;
 
         Serial.printf ("Pinging arduino.com %i times ...\n", PING_DEFAULT_COUNT);
         ping.ping ("arduino.com"); // optional arguments: int count = PING_DEFAULT_COUNT, int interval = PING_DEFAULT_INTERVAL, int size = PING_DEFAULT_SIZE, int timeout = PING_DEFAULT_TIMEOUT
@@ -43,7 +43,7 @@ void setup () {
     // wait 5s and ping github.com
     delay (5000);
 
-    ThreadSafePing ping;
+    ThreadSafePing_t ping;
 
     Serial.printf ("Pinging github.com %i times ...\n", PING_DEFAULT_COUNT);
     ping.ping ("github.com"); // optional arguments: int count = PING_DEFAULT_COUNT, int interval = PING_DEFAULT_INTERVAL, int size = PING_DEFAULT_SIZE, int timeout = PING_DEFAULT_TIMEOUT
