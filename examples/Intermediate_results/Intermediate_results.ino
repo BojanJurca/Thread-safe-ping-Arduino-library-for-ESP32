@@ -2,7 +2,7 @@
 #include <ThreadSafePing.h>
 
 
-class MyPing : public ThreadSafePing {
+class MyPing_t : public ThreadSafePing_t {
     void onReceive (int bytes) {
         if (elapsed_time ())
             Serial.printf ("Reply from %s: bytes = %i time = %.3fms\n", target (), size (), elapsed_time ());
@@ -26,7 +26,7 @@ void setup () {
     Serial.println (WiFi.localIP ());
     
 
-    MyPing ping;
+    MyPing_t ping;
 
     Serial.printf ("Pinging %i times ...\n", PING_DEFAULT_COUNT);
     ping.ping ("arduino.com"); // optional arguments: int count = PING_DEFAULT_COUNT, int interval = PING_DEFAULT_INTERVAL, int size = PING_DEFAULT_SIZE, int timeout = PING_DEFAULT_TIMEOUT
