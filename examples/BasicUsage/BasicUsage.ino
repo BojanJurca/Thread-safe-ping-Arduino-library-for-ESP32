@@ -14,11 +14,9 @@ void setup () {
     Serial.print ("connected\nGetting IP address ... ");
     while (WiFi.localIP () == IPAddress (0, 0, 0, 0)) delay (100);
     Serial.println (WiFi.localIP ());
-    Serial.print ("Router's IP address is ");
-    Serial.println (WiFi.gatewayIP ());
-    
 
-    ThreadSafePing ping;
+
+    ThreadSafePing_t ping;
 
     Serial.printf ("Pinging %i times ...\n", PING_DEFAULT_COUNT);
     ping.ping ("arduino.com"); // optional arguments: int count = PING_DEFAULT_COUNT, int interval = PING_DEFAULT_INTERVAL, int size = PING_DEFAULT_SIZE, int timeout = PING_DEFAULT_TIMEOUT
