@@ -23,11 +23,11 @@ void loop () {
     if (millis () - lastWifiCheck >= 3600000) { // 3600000 ms = 1 hour
         lastWifiCheck = millis ();
 
-        ThreadSafePing ping;
+        ThreadSafePing_t ping;
         // ping router 4 times
         ping.ping (WiFi.gatewayIP (), 4); // optional arguments: int count = PING_DEFAULT_COUNT, int interval = PING_DEFAULT_INTERVAL, int size = PING_DEFAULT_SIZE, int timeout = PING_DEFAULT_TIMEOUT
         if (ping.received () == 0) {
-            Serial.printf ("Not connected ... reconnecting\n");
+            Serial.printf ("Reconnecting ... \n");
             WiFi.disconnect ();
             WiFi.reconnect ();             
         }
