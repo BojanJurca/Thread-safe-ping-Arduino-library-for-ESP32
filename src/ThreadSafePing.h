@@ -1,7 +1,7 @@
 /*
     ThreadSafePing.h
 
-    This file is part of the ThreadSafe ESP32 Ping class: https://github.com/BojanJurca/ThreadSafe-Esp32-ping-class
+    This file is part of the ThreadSafe ESP32 Ping class: https://github.com/BojanJurca/Thread-safe-ping-Arduino-library-for-ESP32
 
     The library is based on the work of Jaume Olivé: https://github.com/pbecchi/ESP32_ping
     and D. Varrel, whose implementation is included in the Arduino Library Manager: https://github.com/dvarrel
@@ -131,3 +131,4 @@
     };
 
 #endif
+
