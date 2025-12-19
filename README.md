@@ -1,4 +1,4 @@
-# Thread-safe ping Arduino library for ESP32
+# Thread-safe Ping Arduino Library for ESP32
 
 A robust, thread-safe ping implementation for ESP32, designed for multitasking environments.  
 
@@ -34,3 +34,4 @@ Existing ESP32 ping libraries are excellent foundations, but they lack:
  - non-blocking operation
 
  - intermediate result callbacks
+
