@@ -15,7 +15,7 @@
     This library was created to address these limitations and provide a more robust, 
     task‑safe ping implementation for ESP32‑based ThreadSafe environments.
 
-    December 25, 2025, Bojan Jurca
+    January 1, 2026, Bojan Jurca
 
 */
 
@@ -64,7 +64,9 @@ const char *ThreadSafePing_t::__resolveTargetName__ (const char *pingTarget) {
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
 
-    int e = getaddrinfo (pingTarget, NULL, &hints, &res);
+    xSemaphoreTake (getLwIpMutex (), portMAX_DELAY);
+        int e = getaddrinfo (pingTarget, NULL, &hints, &res);
+    xSemaphoreGive (getLwIpMutex ());
     if (e)
         return gai_strerror (e);
 
@@ -82,7 +84,9 @@ const char *ThreadSafePing_t::__resolveTargetName__ (const char *pingTarget) {
         inet_ntop (p->ai_family, addr, __pingTargetIp__, sizeof (__pingTargetIp__));
         break;
     }
-    freeaddrinfo (res);
+    xSemaphoreTake (getLwIpMutex (), portMAX_DELAY);
+        freeaddrinfo (res);
+    xSemaphoreGive (getLwIpMutex ());
 
     if (__isIPv6__) {
         __target_addr_IPv6__ = {};
@@ -139,21 +143,23 @@ const char *ThreadSafePing_t::ping (int count, int interval, int size, int timeo
     __var_time__ = 0;
 
     // create socket
-    int sockfd;
-    if (__isIPv6__) {
-        if ((sockfd = socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6)) < 0)
+    xSemaphoreTake (getLwIpMutex (), portMAX_DELAY);
+        int sockfd = __isIPv6__ ? socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) : socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+        
+        if (sockfd < 0) {
+            __errText__ = strerror (errno);
+            xSemaphoreGive (getLwIpMutex ());
             return strerror (errno);
-    } else {
-        if ((sockfd = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0)
-            return strerror (errno);
-    }
+        }
 
-    // make the socket non-blocking, so we can detect time-out later     
-    if (fcntl (sockfd, F_SETFL, O_NONBLOCK) == -1) {
-        __errText__ = strerror (errno);
-        close (sockfd);
-        return __errText__;
-    }
+        // make the socket non-blocking, so we can detect time-out later     
+        if (fcntl (sockfd, F_SETFL, O_NONBLOCK) == -1) {
+            __errText__ = strerror (errno);
+            close (sockfd);
+            xSemaphoreGive (getLwIpMutex ());
+            return __errText__;
+        }
+    xSemaphoreGive (getLwIpMutex ());
 
     // begin ping ...
     for (uint16_t seqno = 1; (seqno <= count || count == 0) && !__stopped__; seqno++) {
@@ -199,7 +205,9 @@ const char *ThreadSafePing_t::ping (int count, int interval, int size, int timeo
         }
     }
 
-    closesocket (sockfd);
+    xSemaphoreTake (getLwIpMutex (), portMAX_DELAY);
+        closesocket (sockfd);
+    xSemaphoreGive (getLwIpMutex ());
     return NULL; // OK
 }
 
@@ -292,7 +300,9 @@ const char *ThreadSafePing_t::__ping_send__ (int sockfd, uint16_t seqno, int siz
         iecho->chksum = inet_chksum (iecho, ping_size);
 
         // send the packet
-        sent = sendto (sockfd, iecho, ping_size, 0, (struct sockaddr *) &__target_addr_IPv4__, sizeof (__target_addr_IPv4__));
+        xSemaphoreTake (getLwIpMutex (), portMAX_DELAY);
+            sent = sendto (sockfd, iecho, ping_size, 0, (struct sockaddr *) &__target_addr_IPv4__, sizeof (__target_addr_IPv4__));
+        xSemaphoreGive (getLwIpMutex ());
         
         mem_free (iecho);
     }
@@ -321,10 +331,9 @@ const char *ThreadSafePing_t::__ping_recv__ (int sockfd, int *bytes, unsigned lo
             return NULL; // OK
 
         // read echo packet without waiting
-        if (__isIPv6__)
-            *bytes = recvfrom (sockfd, buf, sizeof (buf), 0, (struct sockaddr *) &from_addr_IPv6, (socklen_t *) &fromlen);
-        else
-            *bytes = recvfrom (sockfd, buf, sizeof (buf), 0, (struct sockaddr *) &from_addr_IPv4, (socklen_t *) &fromlen);
+        xSemaphoreTake (getLwIpMutex (), portMAX_DELAY);
+             *bytes = __isIPv6__ ? recvfrom (sockfd, buf, sizeof (buf), 0, (struct sockaddr *) &from_addr_IPv6, (socklen_t *) &fromlen) : recvfrom (sockfd, buf, sizeof (buf), 0, (struct sockaddr *) &from_addr_IPv4, (socklen_t *) &fromlen);
+        xSemaphoreGive (getLwIpMutex ());
 
         if (*bytes <= 0) {
             if ((errno == EAGAIN || errno == ENAVAIL) && (micros () - startMicros < timeoutMicros)) {

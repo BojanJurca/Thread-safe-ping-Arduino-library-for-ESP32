@@ -15,7 +15,7 @@
     This library was created to address these limitations and provide a more robust, 
     task‑safe ping implementation for ESP32‑based ThreadSafe environments.
 
-    December 25, 2025, Bojan Jurca
+    January 1, 2026, Bojan Jurca
 
 */
 
@@ -28,6 +28,7 @@
     #include <lwip/inet_chksum.h>
     #include <lwip/ip.h>
     #include <lwip/icmp.h>
+    #include "LwIpMutex.h"
 
     #ifndef ICMP6_TYPES_H
         #define ICMP6_ECHO_REQUEST 128
