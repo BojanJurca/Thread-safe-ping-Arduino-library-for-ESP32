@@ -23,12 +23,14 @@
 #ifndef __ThreadSafePing_H__
     #define __ThreadSafePing_H__
 
+
     #include <WiFi.h>
     #include <lwip/netdb.h>
     #include <lwip/inet_chksum.h>
     #include <lwip/ip.h>
     #include <lwip/icmp.h>
-    #include "LwIpMutex.h"
+    #include <LwIpMutex.h>
+
 
     #ifndef ICMP6_TYPES_H
         #define ICMP6_ECHO_REQUEST 128
@@ -37,6 +39,7 @@
 
     #define EAGAIN 11
     #define ENAVAIL 119
+
 
     static const char *gai_strerror (int err);
 
@@ -130,18 +133,5 @@
             virtual void onReceive (int bytes) {}
             virtual void onWait () {}
     };
-
-
-    class [[deprecated("Use ThreadSafePing_t instead")]] ThreadSafePing : public ThreadSafePing_t {
-	public: 
-		[[deprecated("Use ThreadSafePing_t instead")]] 
-		ThreadSafePing () : ThreadSafePing_t () {}
-
-		[[deprecated("Use ThreadSafePing_t instead")]] 
-		ThreadSafePing (const char *pingTarget) : ThreadSafePing_t (pingTarget) {}
-
-		[[deprecated("Use ThreadSafePing_t instead")]] 
-		ThreadSafePing (const IPAddress& pingTarget) : ThreadSafePing_t (pingTarget) {}
-	};
 
 #endif
