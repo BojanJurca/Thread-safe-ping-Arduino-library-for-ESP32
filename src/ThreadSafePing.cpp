@@ -40,8 +40,9 @@ static const char *gai_strerror (int err) {
     }
 }
 
+
 // internal data structure - one record per each available socket
-ThreadSafePing_t::__pingReply_t__ ThreadSafePing_t::__pingReplies__ [MEMP_NUM_NETCONN];
+ThreadSafePing_t::__pingReply_t__ ThreadSafePing_t::__pingReplies__ [MEMP_NUM_NETCONN] = {};
 
 // constructor with specified target (the one without target specified is in ThreadSafePing_t.h)
 ThreadSafePing_t::ThreadSafePing_t (const char *pingTarget) {

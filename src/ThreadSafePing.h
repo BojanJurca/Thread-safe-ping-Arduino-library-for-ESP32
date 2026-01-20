@@ -41,8 +41,10 @@
     #define ENAVAIL 119
 
 
+    // missing function in LwIP
     static const char *gai_strerror (int err);
-
+ 
+ 
     #ifndef PING_DEFAULT_COUNT
         #define PING_DEFAULT_COUNT     10
     #endif
