@@ -42,7 +42,7 @@
 
 
     // missing function in LwIP
-    static const char *gai_strerror (int err);
+    inline const char *gai_strerror (int err);
  
  
     #ifndef PING_DEFAULT_COUNT

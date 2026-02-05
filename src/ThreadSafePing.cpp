@@ -26,7 +26,7 @@
 
 
 // missing function in LwIP
-static const char *gai_strerror (int err) {
+const char *gai_strerror (int err) {
     switch (err) {
         case EAI_AGAIN:     return "temporary failure in name resolution";
         case EAI_BADFLAGS:  return "invalid value for ai_flags field";
