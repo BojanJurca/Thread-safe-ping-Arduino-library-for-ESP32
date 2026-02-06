@@ -30,6 +30,7 @@
     #include <lwip/ip.h>
     #include <lwip/icmp.h>
     #include <LwIpMutex.h>
+    #include <gai_strerror.h>
 
 
     #ifndef ICMP6_TYPES_H
@@ -40,10 +41,6 @@
     #define EAGAIN 11
     #define ENAVAIL 119
 
-
-    // missing function in LwIP
-    inline const char *gai_strerror (int err);
- 
  
     #ifndef PING_DEFAULT_COUNT
         #define PING_DEFAULT_COUNT     10
