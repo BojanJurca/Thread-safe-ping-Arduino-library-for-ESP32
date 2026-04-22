@@ -15,7 +15,7 @@
     This library was created to address these limitations and provide a more robust, 
     task‑safe ping implementation for ESP32‑based ThreadSafe environments.
 
-    January 1, 2026, Bojan Jurca
+    March 12, 2026, Bojan Jurca
 
 */
 
@@ -85,7 +85,12 @@
                 unsigned long elapsed_time;
             };
 
-            static __pingReply_t__ __pingReplies__ [MEMP_NUM_NETCONN];
+
+            // internal data structure - one record per each available socket - Meyers singleton
+            inline __pingReply_t__* __getPingReplies__ () {
+                static __pingReply_t__ pingReplies [MEMP_NUM_NETCONN] = {};
+                return pingReplies;
+            }
 
             const char *__resolveTargetName__ (const char *pingTarget);
             const char *__ping_send__ (int sockfd, uint16_t seqno, int size);
