@@ -15,7 +15,7 @@
     This library was created to address these limitations and provide a more robust, 
     task‑safe ping implementation for ESP32‑based ThreadSafe environments.
 
-    January 1, 2026, Bojan Jurca
+    March 12, 2026, Bojan Jurca
 
 */
 
@@ -24,9 +24,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-
-// internal data structure - one record per each available socket
-ThreadSafePing_t::__pingReply_t__ ThreadSafePing_t::__pingReplies__ [MEMP_NUM_NETCONN] = {};
 
 // constructor with specified target (the one without target specified is in ThreadSafePing_t.h)
 ThreadSafePing_t::ThreadSafePing_t (const char *pingTarget) {
@@ -159,10 +156,10 @@ const char *ThreadSafePing_t::ping (int count, int interval, int size, int timeo
         int bytesReceived;
         __ping_recv__ (sockfd, &bytesReceived, 1000000 * timeout);
 
-        if (__pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].elapsed_time) {
+        if (__getPingReplies__ () [sockfd - LWIP_SOCKET_OFFSET].elapsed_time) {
             // Update statistics
             __received__++;
-            __elapsed_time__ = (float) __pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].elapsed_time / 1000.0f;
+            __elapsed_time__ = (float) __getPingReplies__ () [sockfd - LWIP_SOCKET_OFFSET].elapsed_time / 1000.0f;
 
             if (__elapsed_time__ < __min_time__) __min_time__ = __elapsed_time__;
             if (__elapsed_time__ > __max_time__) __max_time__ = __elapsed_time__;
@@ -219,7 +216,7 @@ const char *ThreadSafePing_t::__ping_send__ (int sockfd, uint16_t seqno, int siz
             return "out of memory";
 
         // initialize the data structure where the reply information will be stored when it arrives
-        __pingReplies__ [sockfd - LWIP_SOCKET_OFFSET] = { seqno, 0 };
+        __getPingReplies__ () [sockfd - LWIP_SOCKET_OFFSET] = { seqno, 0 };
 
         // prepare echo packet
         size_t data_len = ping_size - sizeof (struct icmp6_echo_hdr);
@@ -263,7 +260,7 @@ const char *ThreadSafePing_t::__ping_send__ (int sockfd, uint16_t seqno, int siz
             return "out of memory";
 
         // initialize the structure where the reply information will be stored when it arrives
-        __pingReplies__ [sockfd - LWIP_SOCKET_OFFSET] = { seqno, 0 };
+        __getPingReplies__ () [sockfd - LWIP_SOCKET_OFFSET] = { seqno, 0 };
 
         // prepare echo packet
         size_t data_len = ping_size - sizeof (struct icmp_echo_hdr);
@@ -312,7 +309,7 @@ const char *ThreadSafePing_t::__ping_recv__ (int sockfd, int *bytes, unsigned lo
     while (true) {
 
         // did some other process poick up our echo reply and already done the job for us? 
-        if (__pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].elapsed_time)
+        if (__getPingReplies__ () [sockfd - LWIP_SOCKET_OFFSET].elapsed_time)
             return NULL; // OK
 
         // read echo packet without waiting
@@ -378,16 +375,16 @@ const char *ThreadSafePing_t::__ping_recv__ (int sockfd, int *bytes, unsigned lo
         if (id == sockfd) {
 
             // did we pick up the echo packet with the latest sequence number?
-            if (__pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].seqno == seqno) {
+            if (__getPingReplies__ () [sockfd - LWIP_SOCKET_OFFSET].seqno == seqno) {
                 // write information about the reply in the data structure
-                __pingReplies__ [sockfd - LWIP_SOCKET_OFFSET].elapsed_time = micros () - sentMicros;
+                __getPingReplies__ () [sockfd - LWIP_SOCKET_OFFSET].elapsed_time = micros () - sentMicros;
                 return NULL; // OK
             } // else the sequence numbers do not match, ignore this echo packet, its time-out has probably already been reported
         } else {    // we picked up an echo packet that was sent from another socket
             // did we pick up the echo packet with the latest sequence number?
-            if (__pingReplies__ [id - LWIP_SOCKET_OFFSET].seqno == seqno) {
+            if (__getPingReplies__ () [id - LWIP_SOCKET_OFFSET].seqno == seqno) {
                 // write information about the reply in the data structure
-                __pingReplies__ [id - LWIP_SOCKET_OFFSET].elapsed_time = micros () - sentMicros;
+                __getPingReplies__ () [id - LWIP_SOCKET_OFFSET].elapsed_time = micros () - sentMicros;
                 // do not return now, continue waiting for the right echo packet
             } // else the sequence numbers do not match, ignore this echo packet, its time-out has probably already been reported
         }
