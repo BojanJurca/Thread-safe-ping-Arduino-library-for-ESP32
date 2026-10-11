@@ -34,4 +34,3 @@ Existing ESP32 ping libraries are excellent foundations, but they lack:
  - non-blocking operation
 
  - intermediate result callbacks
-
